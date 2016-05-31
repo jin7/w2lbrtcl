@@ -1,2 +1,10 @@
 /**/
 
+ons-dialog:not([modifier='material']) p {
+  margin-left: 1px;
+  margin-right: 1px;
+}
+
+input {
+  width: 100%;
+}

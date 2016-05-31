@@ -1,60 +1,208 @@
 <!DOCTYPE HTML>
-<html>
+<html ng-app="myApp">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * data:; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
     <script src="components/loader.js"></script>
     <script src="lib/angular/angular.min.js"></script>
+    <script>
+        /* for a bug in the native implementation of Web Components in Chrome. */
+        /* https://github.com/OnsenUI/OnsenUI/issues/680 */
+        document.registerElement = undefined;
+    </script>
     <script src="lib/onsenui/js/onsenui.min.js"></script>
     <script src="lib/onsenui/js/angular-onsenui.min.js"></script>
+<!--    <script src="components/loader.js"></script>-->
+<!--    <script src="js/ncmbController.js"></script>-->
+    <script src="js/socket.io.js"></script>
+    <script src="js/w2lbWebsockets.js"></script>
+    
+    <script src="js/shareDataService.js"></script><!-- load first -->
+    <script src="js/appController.js"></script>
+    <script src="js/w2lbController.js"></script>
+    <script src="js/scoreController.js"></script>
+    <script src="js/roundController.js"></script>
+    <script src="js/userController.js"></script>
+    <script src="js/courseController.js"></script>
 
     <link rel="stylesheet" href="components/loader.css">
     <link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
     <link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
-
-    <script>
-        ons.bootstrap()
-          .controller('AppController', function() {
-            this.pushes = 0;
-            this.pops = 0;
-          });
-        ons.ready(function() {
-            console.log("Onsen UI is ready!");
-        });
-    </script>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <ons-page>
-        <ons-navigator
-          var="navi"
-          page="page.html"
-          ng-controller="AppController as app"
-          ons-postpush="app.pushes = app.pushes + 1"
-          ons-postpop="app.pops = app.pops + 1">
-        </ons-navigator>
-    </ons-page>
+<body ng-controller="AppController">
+    <ons-modal var="modal">
+        <ons-icon icon="ion-load-c" spin="true"></ons-icon>
+        <br />
+        <br />Please wait.
+    </ons-modal>
+    <ons-navigator var="navi" page="page.html"></ons-navigator>
+<!--    <ons-page>
+    </ons-page>-->
 
     <ons-template id="page.html">
-      <ons-page>
+      <ons-page ng-controller="SignupController as sc">
         <ons-toolbar>
           <div class="left">
             <ons-back-button>Back</ons-back-button>
           </div>
-          <div class="center">Navigation</div>
+          <div class="center">Waku2 Leaderboard RT</div>
         </ons-toolbar>
 
         <section style="padding: 10px">
-          <ons-button ng-click="navi.pushPage('page.html')">
-            Push Page
-          </ons-button>
-
-          <p>
-            You have pushed {{ app.pushes }} times and popped {{ app.pops }} times.
-          </p>
+<!--          <ons-button ng-click="navi.pushPage('page.html')">-->
+            <!-- ログアウト -->
+            <!--
+            <ons-button ng-click="logout()">
+            logout
+            </ons-button>
+            -->
+            <!-- ラウンド選択画面 -->
+            <ons-button ng-click="navi.pushPage('round.html')">
+            rounds
+            </ons-button>
+            <!-- コース選択画面 -->
+            <!--
+            <ons-button ng-click="navi.pushPage('course.html')">
+            courses
+            </ons-button>
+            -->
+            <!--
+            <ons-button ng-controller="W2LBController" ng-click="getUserInfo()">user info</ons-button>
+            -->
         </section>
       </ons-page>
     </ons-template>
 
+    <!-- ラウンド選択画面 -->
+    <ons-template id="round.html">
+        <ons-page ng-controller="RoundController as wc">
+            <ons-toolbar>
+              <div class="left">
+                <ons-back-button>Back</ons-back-button>
+              </div>
+              <div class="center">Rounds</div>
+            </ons-toolbar>
+            
+            <section style="padding: 10px">
+                <ons-button ng-click="getRoundInfoList()">
+                refresh
+                </ons-button>
+                <ons-button ng-click="navi.pushPage('score.html')">
+                    score
+                </ons-button>
+            </section>
+            
+            <ons-list>
+                <div ng-repeat="roundInfo in roundList">
+                    <ons-list-item modifier="tappable">
+                        <label ng-model="$parent.rname" ng-click="selectRound($index)">{{roundInfo.rname}}</label>
+                    </ons-list-item>
+                </div>
+            </ons-list>
+        </ons-page>
+    </ons-template>
+
+    <!-- コース選択画面 -->
+    <ons-template id="course.html">
+        <ons-page ng-controller="W2LBController as wc">
+            <ons-toolbar>
+              <div class="left">
+                <ons-back-button>Back</ons-back-button>
+              </div>
+              <div class="center">Course</div>
+            </ons-toolbar>
+            
+            <section style="padding: 10px">
+                <ons-button ng-click="getCouseInfoList()">
+                refresh
+                </ons-button>
+            </section>
+            
+            <ons-list>
+                <div ng-repeat="courseInfo in courseList">
+                    <ons-list-item modifier="tappable">
+                        <label ng-model="$parent.cname">{{courseInfo.cname}}</label>
+                    </ons-list-item>
+                </div>
+            </ons-list>
+        </ons-page>
+    </ons-template>
+    
+    <!-- スコア入力画面 -->
+    <ons-template id="score.html">
+        <ons-page ng-controller="ScoreController as wc">
+            <ons-toolbar>
+              <div class="left">
+                <ons-back-button>Back</ons-back-button>
+              </div>
+              <div class="center">Score</div>
+            </ons-toolbar>
+            
+            <section style="padding: 10px">
+                <div ng-model="$parent.cname">{{courseInfo.cname}}</div>
+            </section>
+            
+            <ons-row>
+                <ons-col>
+                    <ons-list>
+                        <div ng-repeat="info in outHoleInfo">
+                            <ons-list-item modifier="tappable">
+                                <label>{{info}}</label>
+                                <input class="text-input">
+                            </ons-list-item>
+                        </div>
+                    </ons-list>
+                </ons-col>
+                <ons-col>
+                    <ons-list>
+                        <div ng-repeat="info in inHoleInfo">
+                            <ons-list-item modifier="tappable">
+                                <label>{{info}}</label>
+                                <input class="text-input">
+                            </ons-list-item>
+                        </div>
+                    </ons-list>
+                </ons-col>
+            </ons-row>
+        </ons-page>
+    </ons-template>
+
+    <ons-template id="signup.html">
+        <ons-dialog var="dialog">
+<!--            <ons-toolbar inline>
+                <div class="center">
+                    Sign up
+                </div>
+            </ons-toolbar>-->
+            <p>
+                <input placeholder="mail address" id="mailAddress" class="text-input">
+            </p>
+            <p>
+                <input type="password" placeholder="password" id="password" class="text-input">
+            </p>
+            <ons-button modifier="large" ng-click="dialog.hide()">サインアップ</ons-button>
+        </ons-dialog>
+    </ons-template>
+
+    <ons-template id="login.html">
+        <ons-dialog var="dialog" cancelable>
+<!--            <ons-toolbar inline>
+                <div class="center">
+                    Log in
+                </div>
+            </ons-toolbar>-->
+            <p>
+                <input placeholder="mail address" id="mailAddress" class="text-input">
+            </p>
+            <p>
+                <input type="password" placeholder="password" id="password" class="text-input">
+            </p>
+            <ons-button modifier="large" ng-click="dialog.hide({ kind:'login' })">ログイン</ons-button>
+            <ons-button ng-click="dialog.hide()">キャンセル</ons-button>
+            <ons-button ng-click="dialog.hide({ kind: 'signup' })" style="float:right">サインアップ</ons-button>
+        </ons-dialog>
+    </ons-template>
 </body>
 </html>
